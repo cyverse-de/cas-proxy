@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/alexedwards/scs/engine/memstore"
 	"github.com/alexedwards/scs/session"
 	"github.com/cyverse-de/cas-proxy/reverseproxy"
@@ -13,21 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var log = logrus.WithFields(logrus.Fields{
-	"service": "cas-proxy",
-	"art-id":  "cas-proxy",
-	"group":   "org.cyverse",
-})
-
 var (
 	casBase      string
 	casValidate  string
-	frontendURL  string
-	sslCert      string
-	sslKey       string
 	wsbackendURL string
 	backendURL   string
-	listenAddr   string
 	maxAge       int
 )
 
@@ -112,15 +101,11 @@ var casCmd = &cobra.Command{
 }
 
 func init() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
 	RootCmd.AddCommand(casCmd)
 	casCmd.PersistentFlags().StringVar(&backendURL, "backend-url", "http://localhost:60000", "The hostname and port to proxy requests to.")
 	casCmd.PersistentFlags().StringVar(&wsbackendURL, "ws-backend-url", "", "The backend URL for the handling websocket requests. Defaults to the value of --backend-url with a scheme of ws://")
-	casCmd.PersistentFlags().StringVar(&frontendURL, "frontend-url", "", "The URL for the frontend server. Might be different from the hostname and listen port.")
-	casCmd.PersistentFlags().StringVar(&listenAddr, "listen-addr", "0.0.0.0:8080", "The listen port number.")
 	casCmd.PersistentFlags().StringVar(&casBase, "cas-base-url", "http://localhost:60000", "The hostname and port to proxy to.")
 	casCmd.PersistentFlags().StringVar(&casValidate, "cas-validate", "validate", "The CAS URL endpoint for validating tickets.")
 	casCmd.PersistentFlags().IntVar(&maxAge, "max-age", 0, "The idle timeout for session, in seconds.")
-	casCmd.PersistentFlags().StringVar(&sslCert, "ssl-cert", "", "Path to the SSL .crt file.")
-	casCmd.PersistentFlags().StringVar(&sslKey, "ssl-key", "", "Path to the SSL .key file.")
+
 }
