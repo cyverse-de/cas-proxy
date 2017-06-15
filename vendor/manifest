@@ -119,6 +119,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/satori/go.uuid",
+			"repository": "https://github.com/satori/go.uuid",
+			"vcs": "git",
+			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/sirupsen/logrus",
 			"repository": "https://github.com/sirupsen/logrus",
 			"vcs": "git",
@@ -151,6 +159,14 @@
 			"revision": "f6abca593680b2315d2075e0f5e2a9751e3f431a",
 			"branch": "master",
 			"path": "vendor/github.com/pmezard/go-difflib/difflib",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/tchap/go-patricia",
+			"repository": "https://github.com/tchap/go-patricia",
+			"vcs": "git",
+			"revision": "666120de432aea38ab06bd5c818f04f4129882c9",
+			"branch": "master",
 			"notests": true
 		},
 		{
