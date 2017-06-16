@@ -52,6 +52,13 @@ func NewCASProxy(casBase, casValidate, frontendURL, backendURL, wsbackendURL str
 	}
 }
 
+// NewSimpleProxy returns a *CASProxy for creating simple reverse proxies.
+func NewSimpleProxy(backendURL string) *CASProxy {
+	return &CASProxy{
+		backendURL: backendURL,
+	}
+}
+
 // ValidateTicket will validate a CAS ticket against the configured CAS server.
 func (c *CASProxy) ValidateTicket(w http.ResponseWriter, r *http.Request) {
 	casURL, err := url.Parse(c.casBase)

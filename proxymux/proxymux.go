@@ -1,10 +1,15 @@
 package proxymux
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sync"
 
+	"github.com/cyverse-de/cas-proxy/reverseproxy"
+	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 	trie "github.com/tchap/go-patricia/patricia"
 )
 
@@ -140,4 +145,144 @@ func (p *ProxyMux) Get(path string) (http.Handler, error) {
 		return nil, fmt.Errorf("value stored at %s was not a http.Handler", path)
 	}
 	return val, nil
+}
+
+// ServeHTTP looks up the handler for the given request in the mux and passes
+// control along to it. Implements the http.Handler interface.
+func (p *ProxyMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	reqpath := r.URL.Path
+	handler, err := p.Get(reqpath)
+	if err != nil {
+		msg := errors.Wrapf(err, "error looking up handler for path %s", reqpath)
+		http.Error(w, msg.Error(), http.StatusInternalServerError)
+		return
+	}
+	if handler == nil {
+		http.Error(w, "handler was nil", http.StatusInternalServerError)
+		return
+	}
+	handler.ServeHTTP(w, r)
+}
+
+// APIRequest is the data that is needed for the API calls.
+type APIRequest struct {
+	Path    string `json:"path"`
+	Backend string `json:"backend,omitempty"`
+}
+
+// APIRegisterHandler is an http.Handler for registering new routes.
+func (p *ProxyMux) APIRegisterHandler(w http.ResponseWriter, r *http.Request) {
+	// Read request body
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, "failed to read the body of the request", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse body
+	registration := &APIRequest{}
+	err = json.Unmarshal(body, registration)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "failed to unmarshal the request body as JSON").Error(), http.StatusBadRequest)
+		return
+	}
+
+	if registration.Path == "" {
+		http.Error(w, "The path field was empty", http.StatusBadRequest)
+		return
+	}
+
+	if registration.Backend == "" {
+		http.Error(w, "The backend field was empty", http.StatusBadRequest)
+		return
+	}
+
+	// Create the proxy
+	proxy, err := reverseproxy.NewSimpleProxy(registration.Backend).Proxy()
+	if err != nil {
+		http.Error(w, errors.Wrapf(err, "failed to create proxy for %s", registration.Path).Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Register the path
+	err = p.Add(registration.Path, proxy)
+	if err != nil {
+		http.Error(
+			w,
+			errors.Wrapf(err, "failed to add route path: %s, backend: %s", registration.Path, registration.Backend).Error(),
+			http.StatusBadRequest,
+		)
+		return
+	}
+}
+
+// APIUnregisterHandler is an http.Handler for unregistering routes.
+func (p *ProxyMux) APIUnregisterHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		http.Error(w, "failed to read the body of the request", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse body
+	registration := &APIRequest{}
+	err = json.Unmarshal(body, registration)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "failed to unmarshal the request body as JSON").Error(), http.StatusBadRequest)
+		return
+	}
+
+	if registration.Path == "" {
+		http.Error(w, "The path field was empty", http.StatusBadRequest)
+		return
+	}
+
+	p.Remove(registration.Path)
+}
+
+// // APILookupHandler is an http.Handler for looking up routes.
+// func (p *ProxyMux) APILookupHandler(w http.ResponseWriter, r *http.Request) {
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	defer r.Body.Close()
+// 	if err != nil {
+// 		http.Error(w, "failed to read the body of the request", http.StatusInternalServerError)
+// 		return
+// 	}
+//
+// 	// Parse body
+// 	registration := &APIRequest{}
+// 	err = json.Unmarshal(body, registration)
+// 	if err != nil {
+// 		http.Error(w, errors.Wrap(err, "failed to unmarshal the request body as JSON").Error(), http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	if registration.Path == "" {
+// 		http.Error(w, "The path field was empty", http.StatusBadRequest)
+// 		return
+// 	}
+//
+// 	h, err := p.Get(registration.Path)
+// 	if err != nil {
+// 		http.Error(w, errors.Wrapf(err, "error looking up handler for path %s", registration.Path).Error(), http.StatusInternalServerError)
+// 	}
+//   if h == n
+// }
+
+// APIListHandler is an http.Handler for listing all configured routes.
+func (p *ProxyMux) APIListHandler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+// APIHandler returns an http.Handler that can mux requests to the api functions
+// for managing the ProxyMux.
+func (p *ProxyMux) APIHandler() http.Handler {
+	r := mux.NewRouter()
+	r.Path("/api/register").Methods("POST").Handler(http.HandlerFunc(p.APIRegisterHandler))
+	r.Path("/api/unregister").Methods("POST").Handler(http.HandlerFunc(p.APIUnregisterHandler))
+	//r.Path("/api/lookup").Methods("POST").Handler(http.HandlerFunc(p.APILookupHandler))
+	//r.Path("/api/list").Methods("GET").Handler(http.HandlerFunc(p.APIListHandler))
+	return r
 }

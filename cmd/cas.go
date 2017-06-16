@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	frontendURL  string
 	casBase      string
 	casValidate  string
 	wsbackendURL string
@@ -102,10 +103,10 @@ var casCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(casCmd)
+	casCmd.PersistentFlags().StringVar(&frontendURL, "frontend-url", "", "The URL for the frontend server. Might be different from the hostname and listen port.")
 	casCmd.PersistentFlags().StringVar(&backendURL, "backend-url", "http://localhost:60000", "The hostname and port to proxy requests to.")
 	casCmd.PersistentFlags().StringVar(&wsbackendURL, "ws-backend-url", "", "The backend URL for the handling websocket requests. Defaults to the value of --backend-url with a scheme of ws://")
 	casCmd.PersistentFlags().StringVar(&casBase, "cas-base-url", "http://localhost:60000", "The hostname and port to proxy to.")
 	casCmd.PersistentFlags().StringVar(&casValidate, "cas-validate", "validate", "The CAS URL endpoint for validating tickets.")
 	casCmd.PersistentFlags().IntVar(&maxAge, "max-age", 0, "The idle timeout for session, in seconds.")
-
 }
