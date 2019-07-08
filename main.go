@@ -27,10 +27,6 @@ var log = logrus.WithFields(logrus.Fields{
 	"group":   "org.cyverse",
 })
 
-func init() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-}
-
 const sessionName = "proxy-session"
 const sessionKey = "proxy-session-key"
 const sessionAccess = "proxy-session-last-access"
